@@ -11,7 +11,7 @@ var xbeeAPI = new xbee.XBeeAPI({
 
 //open serial port
 var SerialPort = require('serialport').SerialPort;
-var serialport = new SerialPort("/dev/ttyUSB0", {
+var serialport = new SerialPort("/dev/ttyUSB1", {
 	baudrate: 9600,
 	parser: xbeeAPI.rawParser()
 });
@@ -19,7 +19,7 @@ var serialport = new SerialPort("/dev/ttyUSB0", {
 
 //create helper vars
 var dishwasherDone = false;
-
+var doneCount = 0;
 
 //wait for connection
 io.sockets.on('connection', function (socket) {
@@ -39,13 +39,19 @@ xbeeAPI.on("frame_object", function(frame) {
 		var done = (frame.data[4] === 0) ? true : false;
 
 		if (done != dishwasherDone) {
-			dishwasherDone = done;
-			var now = new Date;
-			console.log(now + ' - Dishwasher done: ' + dishwasherDone);
+			doneCount++;
+			if (doneCount >= 5) {
+				dishwasherDone = done;
+				var now = new Date;
+				console.log(now + ' - Dishwasher done: ' + dishwasherDone);
 
-			//broadcast new state to socket clients
-			io.sockets.emit('dishwasher', dishwasherDone);
+				//broadcast new state to socket clients
+				io.sockets.emit('dishwasher', dishwasherDone);
+			}
+		} else {
+			doneCount = 0;
 		}
+
 	}
 
 });
