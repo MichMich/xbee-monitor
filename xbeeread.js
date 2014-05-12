@@ -11,7 +11,7 @@ var xbeeAPI = new xbee.XBeeAPI({
 
 //open serial port
 var SerialPort = require('serialport').SerialPort;
-var serialport = new SerialPort("/dev/ttyUSB1", {
+var serialport = new SerialPort("/dev/ttyUSB0", {
 	baudrate: 9600,
 	parser: xbeeAPI.rawParser()
 });
@@ -21,6 +21,8 @@ var serialport = new SerialPort("/dev/ttyUSB1", {
 var dishwasherDone = false;
 var doneCount = 0;
 
+var plantNeedsWater = false;
+
 //wait for connection
 io.sockets.on('connection', function (socket) {
 
@@ -28,6 +30,7 @@ io.sockets.on('connection', function (socket) {
 
 	//send current state
 	socket.emit('dishwasher', dishwasherDone);
+	socket.emit('plantNeedsWater', plantNeedsWater);
 
 });
 
@@ -42,8 +45,8 @@ xbeeAPI.on("frame_object", function(frame) {
 			doneCount++;
 			if (doneCount >= 5) {
 				dishwasherDone = done;
-				var now = new Date;
-				console.log(now + ' - Dishwasher done: ' + dishwasherDone);
+			
+				console.log(Date.now() + ' - Dishwasher done: ' + dishwasherDone);
 
 				//broadcast new state to socket clients
 				io.sockets.emit('dishwasher', dishwasherDone);
@@ -52,6 +55,29 @@ xbeeAPI.on("frame_object", function(frame) {
 			doneCount = 0;
 		}
 
+	//handle plant info
+	} else if(frame.remote16 == '0002') {
+		console.log(frame);
+		var moistValue = frame.data[4];
+		if (moistValue >= 128) {
+			if (plantNeedsWater != false) {
+				plantNeedsWater = false;
+				io.sockets.emit('plantNeedsWater', plantNeedsWater);
+				console.log(Date.now() + ' - Plant needs water: ' + plantNeedsWater);
+			}
+		}
+		if (moistValue <= 64) {
+			if (plantNeedsWater != true) {
+				plantNeedsWater = true;
+				io.sockets.emit('plantNeedsWater', plantNeedsWater);
+				console.log(Date.now() + ' - Plant needs water: ' + plantNeedsWater);
+			}
+		}
+		console.log('Plant moistValue: '+moistValue)
+
+	//handle any other devices by echoing the data.
+	} else {
+		console.log(frame);
 	}
 
 });
