@@ -19,7 +19,7 @@ var serialport = new SerialPort("/dev/ttyUSB0", {
 
 //create helper vars
 var dishwasherDone = false;
-var doneCount = 0;
+var dishwasherChangeCount = 0;
 
 var plantNeedsWater = false;
 
@@ -42,8 +42,8 @@ xbeeAPI.on("frame_object", function(frame) {
 		var done = (frame.data[4] === 0) ? true : false;
 
 		if (done != dishwasherDone) {
-			doneCount++;
-			if (doneCount >= 5) {
+			dishwasherChangeCount++;
+			if (dishwasherChangeCount >= 5) {
 				dishwasherDone = done;
 			
 				console.log(Date.now() + ' - Dishwasher done: ' + dishwasherDone);
@@ -52,7 +52,7 @@ xbeeAPI.on("frame_object", function(frame) {
 				io.sockets.emit('dishwasher', dishwasherDone);
 			}
 		} else {
-			doneCount = 0;
+			dishwasherChangeCount = 0;
 		}
 
 	//handle plant info
