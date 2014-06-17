@@ -1,7 +1,7 @@
 //setup socket io server
 var express = require('express');
 var app = express();
-var io = require('socket.io').listen(app.listen(8080), { log: false });
+var io = require('socket.io').listen(app.listen(8082), { log: false });
 
 //set up xbee system
 var xbee = require('xbee-api');
@@ -59,14 +59,14 @@ xbeeAPI.on("frame_object", function(frame) {
 	} else if(frame.remote16 == '0002') {
 		console.log(frame);
 		var moistValue = frame.data[4];
-		if (moistValue >= 128) {
+		if (moistValue >= 144) {
 			if (plantNeedsWater != false) {
 				plantNeedsWater = false;
 				io.sockets.emit('plantNeedsWater', plantNeedsWater);
 				console.log(Date.now() + ' - Plant needs water: ' + plantNeedsWater);
 			}
 		}
-		if (moistValue <= 64) {
+		if (moistValue <= 128) {
 			if (plantNeedsWater != true) {
 				plantNeedsWater = true;
 				io.sockets.emit('plantNeedsWater', plantNeedsWater);
